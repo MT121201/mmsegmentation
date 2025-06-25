@@ -22,7 +22,7 @@ class MyDataset(BaseSegDataset):
                 img_path=img,
                 seg_map_path=seg,
                 seg_fields=['gt_seg_map'],           # ✅ NEW
-                reduce_zero_label=False              # ✅ still required
+                reduce_zero_label=True              # ✅ still required
             ))
         return data_list
 
