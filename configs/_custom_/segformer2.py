@@ -149,12 +149,14 @@ custom_hooks = [
 
 tta_pipeline = [
     dict(type='TestTimeAug', transforms=[
-        [dict(type='Resize', scale=img_scale, keep_ratio=True)],
+        [dict(type='Resize', scale=(768, 768), keep_ratio=True)],
+        [dict(type='ResizeToMultiple', size_divisor=32)],
         [dict(type='RandomFlip', prob=1.0), dict(type='RandomFlip', prob=0.0)],
         [dict(type='LoadAnnotations', reduce_zero_label=True)],
         [dict(type='PackSegInputs')],
     ])
 ]
+
 
 tta_model = dict(type='SegTTAModel')
   
