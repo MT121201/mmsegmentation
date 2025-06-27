@@ -1,5 +1,5 @@
 _base_ = '../segformer/segformer_mit-b5_8xb2-160k_ade20k-640x640.py'
-load_from = '/home/a3ilab01/treeai/det_tree/weights/seg_40_77_24k.pth'
+load_from = '/home/a3ilab01/treeai/mmsegmentation/work_dirs/segformer2/best_mIoU_iter_26000.pth'
 
 # === Dataset ===
 dataset_type = 'MyDataset'
@@ -24,17 +24,24 @@ data_preprocessor = dict(
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations', reduce_zero_label=False),  
-    dict(type='Resize', scale=img_scale, keep_ratio=True),
-    dict(type='RandomCrop', crop_size=img_scale, cat_max_ratio=0.75),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
+    dict(
+    type='Resize',
+    scale=(1024,1024),
+    keep_ratio=True  # or False if you want exact 1280x1280
+),
+    dict(type='RandomCrop', crop_size=(1024,1024), cat_max_ratio=0.75),
+
     dict(type='RandomFlip', prob=0.5),
+    dict(type='RandomRotate', prob=0.3, degree=10),
     dict(type='PhotoMetricDistortion'),
+    dict(type='RandomCutOut', n_holes=1, cutout_shape=(32, 32), prob=0.1),
     dict(type='PackSegInputs'),
 ]
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=img_scale, keep_ratio=True),
+    dict(type='Resize', scale=(1024,1024), keep_ratio=True),
     dict(type='LoadAnnotations', reduce_zero_label=False),
     dict(type='PackSegInputs'),
 ]
@@ -71,7 +78,7 @@ model = dict(
 
 
 train_dataloader = dict(
-    batch_size=4,
+    batch_size=1,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
@@ -109,14 +116,14 @@ test_evaluator = val_evaluator
 train_cfg = dict(
     type='IterBasedTrainLoop',
     max_iters=40000,
-    val_interval=2000
+    val_interval=1000
 )
 
 default_hooks = dict(
     checkpoint=dict(
         type='CheckpointHook',
         by_epoch=False,
-        interval=2000,
+        interval=1000,
         max_keep_ckpts=2,
         save_best='mIoU',
         rule='greater'
