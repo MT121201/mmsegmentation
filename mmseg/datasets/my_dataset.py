@@ -5,8 +5,9 @@ from mmseg.datasets.basesegdataset import BaseSegDataset
 @DATASETS.register_module()
 class MyDataset(BaseSegDataset):
     METAINFO = dict(
-        classes=[f'class_{i}' for i in range(1, 62)],
-        palette=[[i * 3 % 256, i * 7 % 256, i * 11 % 256] for i in range(1, 62)],
+        classes=[f'class_{i}' for i in range(0, 62)],
+        # classes = ['background', 'foreground'],
+        palette=[[i * 3 % 256, i * 7 % 256, i * 11 % 256] for i in range(0, 62)],
     )
 
     def load_data_list(self):
@@ -22,7 +23,7 @@ class MyDataset(BaseSegDataset):
                 img_path=img,
                 seg_map_path=seg,
                 seg_fields=['gt_seg_map'],           # ✅ NEW
-                reduce_zero_label=True              # ✅ still required
+                reduce_zero_label=False              # ✅ still required
             ))
         return data_list
 

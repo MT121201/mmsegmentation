@@ -1,52 +1,46 @@
-from mmseg.apis import init_model, inference_model
-from mmseg.models import SegTTAModel  # 👈 required for TTA
-from mmengine.config import Config
-from mmengine.registry import init_default_scope
 import os
 import numpy as np
 from tqdm import tqdm
-from PIL import Image
-import argparse
+from mmseg.apis import inference_model, init_model
+from mmengine.config import Config
+from mmengine.registry import init_default_scope
 import torch
 
-def main(config_file, checkpoint_file, test_dir, output_dir, device='cuda:0'):
-    # Load config and init model
-    cfg = Config.fromfile(config_file)
-    init_default_scope(cfg.get('default_scope', 'mmseg'))
+# --- Paths ---
+config_path = '/home/a3ilab01/treeai/mmsegmentation/configs/_custom_/segformer2.py'
+checkpoint_path = '/home/a3ilab01/treeai/det_tree/weights/seg_best52.pth'
+img_dir = '/home/a3ilab01/treeai/dataset/SemSeg_test-images'
+output_dir = './predictions_thresholded'
+threshold = 0.3  # ✅ confidence threshold to assign background
 
-    # ✅ Load base model
-    model = init_model(cfg, checkpoint_file, device=device)
+os.makedirs(output_dir, exist_ok=True)
 
-    # ✅ Wrap with TTA model if defined in config
-    if 'tta_model' in cfg and 'tta_pipeline' in cfg:
-        model = SegTTAModel(**cfg.tta_model)
-        model.cfg = cfg  # this is required for model to have correct pipeline
-        model.base_model = init_model(cfg, checkpoint_file, device=device)
-        model.base_model.eval()
-        model.eval()
+# --- Load model ---
+cfg = Config.fromfile(config_path)
+init_default_scope(cfg.get('default_scope', 'mmseg'))
+model = init_model(cfg, checkpoint_path, device='cuda:0')
+model.eval()
 
-    os.makedirs(output_dir, exist_ok=True)
-    test_images = sorted([f for f in os.listdir(test_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
+# --- Inference loop ---
+test_images = sorted([f for f in os.listdir(img_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
 
-    for fname in tqdm(test_images):
-        img_path = os.path.join(test_dir, fname)
+for fname in tqdm(test_images):
+    img_path = os.path.join(img_dir, fname)
 
-        # Use TTA if available
+    # Run inference and get logits
+    with torch.no_grad():
         result = inference_model(model, img_path)
+        logits = result.pred_sem_seg.logits.squeeze(0)  # [C, H, W]
 
-        pred = result.pred_sem_seg.data.squeeze().cpu().numpy()
-        base_name = os.path.splitext(fname)[0]
-        np.save(os.path.join(output_dir, base_name + '.npy'), pred.astype(np.uint8))
+        probs = torch.softmax(logits, dim=0)
+        max_conf, pred = probs.max(dim=0)  # pred in [0–60]
 
-    print(f"\n✅ Saved {len(test_images)} .npy prediction files to: {output_dir}")
+        pred = pred + 1                    # shift: 0–60 → 1–61
+        pred[max_conf < threshold] = 0     # assign class_0 where confidence is low
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', required=True, help='Path to model config (.py)')
-    parser.add_argument('--checkpoint', required=True, help='Path to model checkpoint (.pth)')
-    parser.add_argument('--test_dir', required=True, help='Folder with test images')
-    parser.add_argument('--output_dir', default='predictions', help='Output folder for .npy files')
-    parser.add_argument('--device', default='cuda:0')
-    args = parser.parse_args()
+        pred_np = pred.cpu().numpy().astype(np.uint8)
 
-    main(args.config, args.checkpoint, args.test_dir, args.output_dir, args.device)
+    base_name = os.path.splitext(fname)[0]
+    np.save(os.path.join(output_dir, base_name + '.npy'), pred_np)
+
+print(f"✅ Predictions with threshold saved to: {output_dir}")
