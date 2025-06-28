@@ -8,7 +8,7 @@ import torch
 
 # --- Paths ---
 config_path = '/home/a3ilab01/treeai/mmsegmentation/configs/_custom_/segformer2.py'
-checkpoint_path = '/home/a3ilab01/treeai/mmsegmentation/work_dirs/segformer2/best_mIoU_iter_26000.pth'
+checkpoint_path = '/home/a3ilab01/treeai/mmsegmentation/work_dirs/segformer2/best_mIoU_iter_8000.pth'
 img_dir = '/home/a3ilab01/treeai/dataset/SemSeg_test-images'
 output_dir = './predictions'
 

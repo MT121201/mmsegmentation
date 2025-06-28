@@ -2,12 +2,12 @@ _base_ = '../segformer/segformer_mit-b5_8xb2-160k_ade20k-640x640.py'
 load_from = '/home/a3ilab01/treeai/mmsegmentation/work_dirs/segformer2/best_mIoU_iter_26000.pth'
 
 # === Dataset ===
-dataset_type = 'MyDataset'
+dataset_type = 'MyDataset1'
 data_root = '/home/a3ilab01/treeai/dataset/segmentation/full/'
 
 # ✅ Class 0 = background, excluded from training
-classes = [f'class_{i}' for i in range(0, 62)]  # 1 to 61
-palette = [[i * 3 % 256, i * 7 % 256, i * 11 % 256] for i in range(0, 62)]
+classes = [f'class_{i}' for i in range(1, 62)]  # 1 to 61
+palette = [[i * 3 % 256, i * 7 % 256, i * 11 % 256] for i in range(1, 62)]
 metainfo = dict(classes=classes, palette=palette)
 
 img_scale = (640, 640)
@@ -43,13 +43,13 @@ dict(
 test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='Resize', scale=(640, 640), keep_ratio=True),
-    dict(type='LoadAnnotations', reduce_zero_label=False),
+    dict(type='LoadAnnotations', reduce_zero_label=True),
     dict(type='PackSegInputs'),
 ]
 
 model = dict(
     decode_head=dict(
-        num_classes=62,
+        num_classes=61,
         loss_decode=[
             dict(
                 type='CrossEntropyLoss',
@@ -67,7 +67,7 @@ model = dict(
         num_convs=1,
         concat_input=False,
         dropout_ratio=0.1,
-        num_classes=62,
+        num_classes=61,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         align_corners=False,
         loss_decode=[
